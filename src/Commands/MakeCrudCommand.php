@@ -9,10 +9,10 @@ class MakeCrudCommand extends Command
 {
     protected $signature = 'make:crud
                             {name : Model name (e.g. Post, ProductCategory)}
-                            {--columns= : Columns for the table, e.g. name:string,slug:string,description:text}
+                            {--columns= : Columns for the table, e.g. name:string,slug:string:unique,description:text}
                             {--api : Generate API controller instead of web resource controller}
                             {--softdelete : Add soft delete support}
-                            {--all : Generate all files (migration, model, repository, request, controller, resource)}
+                            {--guarded : Use $guarded instead of $fillable in model}
                             {--files= : Specific files to generate, e.g. model,controller,repository}
                             {--force : Overwrite existing files}';
 
@@ -27,6 +27,7 @@ class MakeCrudCommand extends Command
     protected string $tableName;
     protected array $columns = [];
     protected bool $softDelete = false;
+    protected bool $useGuarded = false;
     protected array $filesToGenerate = [];
 
     public function handle(): int
@@ -39,6 +40,7 @@ class MakeCrudCommand extends Command
         $this->pluralSnake = Str::snake($this->plural);
         $this->tableName = $this->pluralSnake;
         $this->softDelete = $this->option('softdelete');
+        $this->useGuarded = $this->option('guarded');
         
         $this->parseColumns();
         $this->parseFilesToGenerate();
@@ -186,25 +188,28 @@ class MakeCrudCommand extends Command
             $parts = explode(':', trim($column));
             $name = $parts[0];
             $type = $parts[1] ?? 'string';
+            $options = array_slice($parts, 2); // get everything after type
+            
             $this->columns[] = [
                 'name' => $name,
                 'type' => $type,
+                'options' => $options,
             ];
         }
     }
 
     protected function parseFilesToGenerate(): void
     {
-        $allOption = $this->option('all');
         $filesOption = $this->option('files');
-        
-        if ($allOption) {
-            $this->filesToGenerate = ['migration', 'model', 'repository', 'request', 'controller', 'resource'];
-            return;
-        }
         
         if (!empty($filesOption)) {
             $this->filesToGenerate = array_map('trim', explode(',', $filesOption));
+            
+            // If model is requested, also add migration
+            if (in_array('model', $this->filesToGenerate) && !in_array('migration', $this->filesToGenerate)) {
+                $this->filesToGenerate[] = 'migration';
+            }
+            
             return;
         }
         
@@ -225,10 +230,21 @@ class MakeCrudCommand extends Command
         $softDeletesMigration = '';
         $softDeletesUse = '';
         $softDeletesTrait = '';
+        $guardedOrFillable = '';
         
         foreach ($this->columns as $column) {
-            // Migration columns
-            $migrationColumns .= "\$table->{$column['type']}('{$column['name']}');\n            ";
+            // Build migration column line
+            $migrationLine = "\$table->{$column['type']}('{$column['name']}')";
+            
+            // Add options (like unique)
+            if (!empty($column['options'])) {
+                foreach ($column['options'] as $option) {
+                    $migrationLine .= "->{$option}()";
+                }
+            }
+            
+            $migrationLine .= ";\n            ";
+            $migrationColumns .= $migrationLine;
             
             // Fillable
             if ($fillable !== '') {
@@ -249,6 +265,18 @@ class MakeCrudCommand extends Command
             $softDeletesTrait = "use SoftDeletes;\n    ";
         }
         
+        if ($this->useGuarded) {
+            $guardedOrFillable = <<<'PHP'
+    protected $guarded = [];
+PHP;
+        } else {
+            $guardedOrFillable = <<<PHP
+    protected \$fillable = [
+        {$fillable}
+    ];
+PHP;
+        }
+        
         return str_replace(
             [
                 '{{ studly }}',
@@ -258,11 +286,11 @@ class MakeCrudCommand extends Command
                 '{{ pluralSnake }}',
                 '{{ tableName }}',
                 '{{ migrationColumns }}',
-                '{{ fillable }}',
                 '{{ validationRules }}',
                 '{{ softDeletesMigration }}',
                 '{{ softDeletesUse }}',
                 '{{ softDeletesTrait }}',
+                '{{ guardedOrFillable }}',
             ],
             [
                 $this->studly,
@@ -272,11 +300,11 @@ class MakeCrudCommand extends Command
                 $this->pluralSnake,
                 $this->tableName,
                 $migrationColumns,
-                $fillable,
                 $validationRules,
                 $softDeletesMigration,
                 $softDeletesUse,
                 $softDeletesTrait,
+                $guardedOrFillable,
             ],
             $stub
         );

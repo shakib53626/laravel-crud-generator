@@ -11,9 +11,7 @@ class {{ studly }} extends Model
     {{ softDeletesTrait }}
     protected $table = '{{ tableName }}';
 
-    protected $fillable = [
-        {{ fillable }}
-    ];
+    {{ guardedOrFillable }}
 
     protected $hidden = [
         //
