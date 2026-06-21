@@ -1,5 +1,5 @@
 {
-    "name": "shakib/laravel-crud-generator",
+    "name": "shakib53626/laravel-crud-generator",
     "description": "A Laravel package to generate CRUD scaffold (Migration, Model, Controller, Requests, Resource) with one command.",
     "type": "library",
     "license": "MIT",
@@ -15,13 +15,13 @@
     },
     "autoload": {
         "psr-4": {
-            "Shakib\\CrudGenerator\\": "src/"
+            "Shakib53626\\CrudGenerator\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Shakib\\CrudGenerator\\CrudGeneratorServiceProvider"
+                "Shakib53626\\CrudGenerator\\CrudGeneratorServiceProvider"
             ]
         }
     },

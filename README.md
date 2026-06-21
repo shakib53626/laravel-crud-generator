@@ -18,20 +18,20 @@ In your Laravel project's `composer.json`:
     }
 ],
 "require": {
-    "shakib/laravel-crud-generator": "*"
+    "shakib53626/laravel-crud-generator": "*"
 }
 ```
 
 Then run:
 
 ```bash
-composer require shakib/laravel-crud-generator
+composer require shakib53626/laravel-crud-generator
 ```
 
 ### Via Packagist (after publishing)
 
 ```bash
-composer require shakib/laravel-crud-generator
+composer require shakib53626/laravel-crud-generator
 ```
 
 ---

@@ -1,9 +1,9 @@
 <?php
 
-namespace Shakib\CrudGenerator;
+namespace Shakib53626\CrudGenerator;
 
 use Illuminate\Support\ServiceProvider;
-use Shakib\CrudGenerator\Commands\MakeCrudCommand;
+use Shakib53626\CrudGenerator\Commands\MakeCrudCommand;
 
 class CrudGeneratorServiceProvider extends ServiceProvider
 {
