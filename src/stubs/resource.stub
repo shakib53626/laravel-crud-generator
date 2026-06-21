@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class {{ studly }}Resource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id'         => $this->id,
+            // TODO: map your model fields here
+            'created_at' => $this->created_at?->toDateTimeString(),
+            'updated_at' => $this->updated_at?->toDateTimeString(),
+        ];
+    }
+}

@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\{{ studly }}\Store{{ studly }}Request;
+use App\Http\Requests\{{ studly }}\Update{{ studly }}Request;
+use App\Http\Resources\{{ studly }}Resource;
+use App\Models\{{ studly }};
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+class {{ studly }}Controller extends Controller
+{
+    public function index(Request $request)
+    {
+        ${{ pluralSnake }} = {{ studly }}::latest()->paginate(15);
+
+        return Inertia::render('{{ plural }}/Index', [
+            '{{ pluralSnake }}' => {{ studly }}Resource::collection(${{ pluralSnake }}),
+        ]);
+    }
+
+    public function create()
+    {
+        return Inertia::render('{{ plural }}/Create');
+    }
+
+    public function store(Store{{ studly }}Request $request)
+    {
+        ${{ camel }} = {{ studly }}::create($request->validated());
+
+        return redirect()->route('{{ pluralSnake }}.index')
+            ->with('success', '{{ studly }} created successfully.');
+    }
+
+    public function show({{ studly }} ${{ camel }})
+    {
+        return Inertia::render('{{ plural }}/Show', [
+            '{{ camel }}' => new {{ studly }}Resource(${{ camel }}),
+        ]);
+    }
+
+    public function edit({{ studly }} ${{ camel }})
+    {
+        return Inertia::render('{{ plural }}/Edit', [
+            '{{ camel }}' => new {{ studly }}Resource(${{ camel }}),
+        ]);
+    }
+
+    public function update(Update{{ studly }}Request $request, {{ studly }} ${{ camel }})
+    {
+        ${{ camel }}->update($request->validated());
+
+        return redirect()->route('{{ pluralSnake }}.index')
+            ->with('success', '{{ studly }} updated successfully.');
+    }
+
+    public function destroy({{ studly }} ${{ camel }})
+    {
+        ${{ camel }}->delete();
+
+        return redirect()->route('{{ pluralSnake }}.index')
+            ->with('success', '{{ studly }} deleted successfully.');
+    }
+}

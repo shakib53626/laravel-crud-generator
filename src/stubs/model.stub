@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class {{ studly }} extends Model
+{
+    use HasFactory;
+
+    protected $table = '{{ tableName }}';
+
+    protected $fillable = [
+        // TODO: list your fillable columns
+    ];
+
+    protected $hidden = [
+        //
+    ];
+
+    protected $casts = [
+        //
+    ];
+}
