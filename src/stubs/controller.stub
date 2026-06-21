@@ -2,18 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\{{ studly }}\Store{{ studly }}Request;
-use App\Http\Requests\{{ studly }}\Update{{ studly }}Request;
+use App\Http\Requests\{{ studly }}Request;
 use App\Http\Resources\{{ studly }}Resource;
-use App\Models\{{ studly }};
+use App\Repositories\{{ studly }}Repository;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class {{ studly }}Controller extends Controller
 {
+    public function __construct(protected {{ studly }}Repository $repository)
+    {
+    }
+
     public function index(Request $request)
     {
-        ${{ pluralSnake }} = {{ studly }}::latest()->paginate(15);
+        ${{ pluralSnake }} = $this->repository->getAll();
 
         return Inertia::render('{{ plural }}/Index', [
             '{{ pluralSnake }}' => {{ studly }}Resource::collection(${{ pluralSnake }}),
@@ -25,39 +28,45 @@ class {{ studly }}Controller extends Controller
         return Inertia::render('{{ plural }}/Create');
     }
 
-    public function store(Store{{ studly }}Request $request)
+    public function store({{ studly }}Request $request)
     {
-        ${{ camel }} = {{ studly }}::create($request->validated());
+        ${{ camel }} = $this->repository->create($request->validated());
 
         return redirect()->route('{{ pluralSnake }}.index')
             ->with('success', '{{ studly }} created successfully.');
     }
 
-    public function show({{ studly }} ${{ camel }})
+    public function show($id)
     {
+        ${{ camel }} = $this->repository->findById($id);
+
         return Inertia::render('{{ plural }}/Show', [
             '{{ camel }}' => new {{ studly }}Resource(${{ camel }}),
         ]);
     }
 
-    public function edit({{ studly }} ${{ camel }})
+    public function edit($id)
     {
+        ${{ camel }} = $this->repository->findById($id);
+
         return Inertia::render('{{ plural }}/Edit', [
             '{{ camel }}' => new {{ studly }}Resource(${{ camel }}),
         ]);
     }
 
-    public function update(Update{{ studly }}Request $request, {{ studly }} ${{ camel }})
+    public function update({{ studly }}Request $request, $id)
     {
-        ${{ camel }}->update($request->validated());
+        ${{ camel }} = $this->repository->findById($id);
+        $this->repository->update(${{ camel }}, $request->validated());
 
         return redirect()->route('{{ pluralSnake }}.index')
             ->with('success', '{{ studly }} updated successfully.');
     }
 
-    public function destroy({{ studly }} ${{ camel }})
+    public function destroy($id)
     {
-        ${{ camel }}->delete();
+        ${{ camel }} = $this->repository->findById($id);
+        $this->repository->delete(${{ camel }});
 
         return redirect()->route('{{ pluralSnake }}.index')
             ->with('success', '{{ studly }} deleted successfully.');

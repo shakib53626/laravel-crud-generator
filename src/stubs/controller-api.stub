@@ -3,45 +3,52 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\{{ studly }}\Store{{ studly }}Request;
-use App\Http\Requests\{{ studly }}\Update{{ studly }}Request;
+use App\Http\Requests\{{ studly }}Request;
 use App\Http\Resources\{{ studly }}Resource;
-use App\Models\{{ studly }};
+use App\Repositories\{{ studly }}Repository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class {{ studly }}Controller extends Controller
 {
+    public function __construct(protected {{ studly }}Repository $repository)
+    {
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
-        ${{ pluralSnake }} = {{ studly }}::latest()->paginate(15);
+        ${{ pluralSnake }} = $this->repository->getAll();
 
         return {{ studly }}Resource::collection(${{ pluralSnake }});
     }
 
-    public function store(Store{{ studly }}Request $request): {{ studly }}Resource
+    public function store({{ studly }}Request $request): {{ studly }}Resource
     {
-        ${{ camel }} = {{ studly }}::create($request->validated());
+        ${{ camel }} = $this->repository->create($request->validated());
 
         return new {{ studly }}Resource(${{ camel }});
     }
 
-    public function show({{ studly }} ${{ camel }}): {{ studly }}Resource
+    public function show($id): {{ studly }}Resource
     {
-        return new {{ studly }}Resource(${{ camel }});
-    }
-
-    public function update(Update{{ studly }}Request $request, {{ studly }} ${{ camel }}): {{ studly }}Resource
-    {
-        ${{ camel }}->update($request->validated());
+        ${{ camel }} = $this->repository->findById($id);
 
         return new {{ studly }}Resource(${{ camel }});
     }
 
-    public function destroy({{ studly }} ${{ camel }}): JsonResponse
+    public function update({{ studly }}Request $request, $id): {{ studly }}Resource
     {
-        ${{ camel }}->delete();
+        ${{ camel }} = $this->repository->findById($id);
+        $this->repository->update(${{ camel }}, $request->validated());
+
+        return new {{ studly }}Resource(${{ camel }});
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        ${{ camel }} = $this->repository->findById($id);
+        $this->repository->delete(${{ camel }});
 
         return response()->json(['message' => '{{ studly }} deleted successfully.']);
     }

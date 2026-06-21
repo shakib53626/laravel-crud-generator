@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\{{ studly }};
+namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class Update{{ studly }}Request extends FormRequest
+class {{ studly }}Request extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,7 +14,7 @@ class Update{{ studly }}Request extends FormRequest
     public function rules(): array
     {
         return [
-            // TODO: define validation rules
+            // Add your validation rules here
         ];
     }
 }

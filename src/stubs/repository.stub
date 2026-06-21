@@ -1,0 +1,34 @@
+<?php
+
+namespace App\Repositories;
+
+use App\Models\{{ studly }};
+
+class {{ studly }}Repository
+{
+    public function getAll()
+    {
+        return {{ studly }}::all();
+    }
+
+    public function findById($id)
+    {
+        return {{ studly }}::findOrFail($id);
+    }
+
+    public function create(array $data)
+    {
+        return {{ studly }}::create($data);
+    }
+
+    public function update({{ studly }} ${{ camel }}, array $data)
+    {
+        ${{ camel }}->update($data);
+        return ${{ camel }};
+    }
+
+    public function delete({{ studly }} ${{ camel }})
+    {
+        return ${{ camel }}->delete();
+    }
+}

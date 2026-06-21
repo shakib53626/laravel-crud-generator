@@ -37,8 +37,9 @@ class MakeCrudCommand extends Command
 
         $this->generateMigration();
         $this->generateModel();
+        $this->generateRepository();
+        $this->generateRequest();
         $this->generateController();
-        $this->generateRequests();
         $this->generateResource();
 
         $this->newLine();
@@ -73,6 +74,32 @@ class MakeCrudCommand extends Command
         $this->writeFile($targetPath, $stub, 'Model');
     }
 
+    // ─── Repository ───────────────────────────────────────────────
+    protected function generateRepository(): void
+    {
+        $dir = app_path('Repositories');
+        @mkdir($dir, 0755, true);
+        $targetPath = "{$dir}/{$this->studly}Repository.php";
+
+        $stub = $this->getStub('repository');
+        $stub = $this->replacePlaceholders($stub);
+
+        $this->writeFile($targetPath, $stub, 'Repository');
+    }
+
+    // ─── Request ──────────────────────────────────────────────────
+    protected function generateRequest(): void
+    {
+        $dir = app_path('Http/Requests');
+        @mkdir($dir, 0755, true);
+        $targetPath = "{$dir}/{$this->studly}Request.php";
+
+        $stub = $this->getStub('request');
+        $stub = $this->replacePlaceholders($stub);
+
+        $this->writeFile($targetPath, $stub, 'Request');
+    }
+
     // ─── Controller ───────────────────────────────────────────────
     protected function generateController(): void
     {
@@ -89,20 +116,6 @@ class MakeCrudCommand extends Command
         $stub = $this->replacePlaceholders($stub);
 
         $this->writeFile($targetPath, $stub, 'Controller');
-    }
-
-    // ─── Requests ─────────────────────────────────────────────────
-    protected function generateRequests(): void
-    {
-        $dir = app_path("Http/Requests/{$this->studly}");
-        @mkdir($dir, 0755, true);
-
-        foreach (['store', 'update'] as $type) {
-            $stub       = $this->getStub("request-{$type}");
-            $stub       = $this->replacePlaceholders($stub);
-            $targetPath = "{$dir}/" . ucfirst($type) . "{$this->studly}Request.php";
-            $this->writeFile($targetPath, $stub, ucfirst($type) . 'Request');
-        }
     }
 
     // ─── API Resource ─────────────────────────────────────────────
