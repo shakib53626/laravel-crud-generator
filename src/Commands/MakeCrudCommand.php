@@ -14,7 +14,7 @@ class MakeCrudCommand extends Command
 
     protected $description = 'Generate CRUD scaffold: Migration, Model, Controller, Requests, and API Resource';
 
-    protected string $name;
+    protected string $modelName;
     protected string $studly;
     protected string $snake;
     protected string $camel;
@@ -24,8 +24,8 @@ class MakeCrudCommand extends Command
 
     public function handle(): int
     {
-        $this->name      = $this->argument('name');
-        $this->studly    = Str::studly($this->name);
+        $this->modelName = $this->argument('name');
+        $this->studly    = Str::studly($this->modelName);
         $this->snake     = Str::snake($this->studly);
         $this->camel     = Str::camel($this->studly);
         $this->plural    = Str::plural($this->studly);
