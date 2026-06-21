@@ -9,6 +9,7 @@ class MakeCrudCommand extends Command
 {
     protected $signature = 'make:crud
                             {name : Model name (e.g. Post, ProductCategory)}
+                            {--columns= : Columns for the table, e.g. name:string,slug:string,description:text}
                             {--api : Generate API controller instead of web resource controller}
                             {--force : Overwrite existing files}';
 
@@ -21,6 +22,7 @@ class MakeCrudCommand extends Command
     protected string $plural;
     protected string $pluralSnake;
     protected string $tableName;
+    protected array $columns = [];
 
     public function handle(): int
     {
@@ -31,6 +33,8 @@ class MakeCrudCommand extends Command
         $this->plural    = Str::plural($this->studly);
         $this->pluralSnake = Str::snake($this->plural);
         $this->tableName = $this->pluralSnake;
+        
+        $this->parseColumns();
 
         $this->info("🚀 Generating CRUD for: <comment>{$this->studly}</comment>");
         $this->newLine();
@@ -149,8 +153,50 @@ class MakeCrudCommand extends Command
         return file_get_contents($defaultPath);
     }
 
+    protected function parseColumns(): void
+    {
+        $columnsOption = $this->option('columns');
+        
+        if (empty($columnsOption)) {
+            return;
+        }
+        
+        $columns = explode(',', $columnsOption);
+        
+        foreach ($columns as $column) {
+            $parts = explode(':', trim($column));
+            $name = $parts[0];
+            $type = $parts[1] ?? 'string';
+            $this->columns[] = [
+                'name' => $name,
+                'type' => $type,
+            ];
+        }
+    }
+
     protected function replacePlaceholders(string $stub): string
     {
+        $migrationColumns = '';
+        $fillable = '';
+        $validationRules = '';
+        
+        foreach ($this->columns as $column) {
+            // Migration columns
+            $migrationColumns .= "\$table->{$column['type']}('{$column['name']}');\n            ";
+            
+            // Fillable
+            if ($fillable !== '') {
+                $fillable .= ', ';
+            }
+            $fillable .= "'{$column['name']}'";
+            
+            // Validation rules
+            if ($validationRules !== '') {
+                $validationRules .= ",\n            ";
+            }
+            $validationRules .= "'{$column['name']}' => 'required'";
+        }
+        
         return str_replace(
             [
                 '{{ studly }}',
@@ -159,6 +205,9 @@ class MakeCrudCommand extends Command
                 '{{ plural }}',
                 '{{ pluralSnake }}',
                 '{{ tableName }}',
+                '{{ migrationColumns }}',
+                '{{ fillable }}',
+                '{{ validationRules }}',
             ],
             [
                 $this->studly,
@@ -167,6 +216,9 @@ class MakeCrudCommand extends Command
                 $this->plural,
                 $this->pluralSnake,
                 $this->tableName,
+                $migrationColumns,
+                $fillable,
+                $validationRules,
             ],
             $stub
         );

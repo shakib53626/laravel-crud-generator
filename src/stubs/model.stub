@@ -12,7 +12,7 @@ class {{ studly }} extends Model
     protected $table = '{{ tableName }}';
 
     protected $fillable = [
-        // TODO: list your fillable columns
+        {{ fillable }}
     ];
 
     protected $hidden = [
