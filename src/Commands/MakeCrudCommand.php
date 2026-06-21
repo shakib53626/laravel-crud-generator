@@ -11,6 +11,9 @@ class MakeCrudCommand extends Command
                             {name : Model name (e.g. Post, ProductCategory)}
                             {--columns= : Columns for the table, e.g. name:string,slug:string,description:text}
                             {--api : Generate API controller instead of web resource controller}
+                            {--softdelete : Add soft delete support}
+                            {--all : Generate all files (migration, model, repository, request, controller, resource)}
+                            {--files= : Specific files to generate, e.g. model,controller,repository}
                             {--force : Overwrite existing files}';
 
     protected $description = 'Generate CRUD scaffold: Migration, Model, Controller, Requests, and API Resource';
@@ -23,6 +26,8 @@ class MakeCrudCommand extends Command
     protected string $pluralSnake;
     protected string $tableName;
     protected array $columns = [];
+    protected bool $softDelete = false;
+    protected array $filesToGenerate = [];
 
     public function handle(): int
     {
@@ -33,18 +38,32 @@ class MakeCrudCommand extends Command
         $this->plural    = Str::plural($this->studly);
         $this->pluralSnake = Str::snake($this->plural);
         $this->tableName = $this->pluralSnake;
+        $this->softDelete = $this->option('softdelete');
         
         $this->parseColumns();
+        $this->parseFilesToGenerate();
 
         $this->info("🚀 Generating CRUD for: <comment>{$this->studly}</comment>");
         $this->newLine();
 
-        $this->generateMigration();
-        $this->generateModel();
-        $this->generateRepository();
-        $this->generateRequest();
-        $this->generateController();
-        $this->generateResource();
+        if ($this->shouldGenerate('migration')) {
+            $this->generateMigration();
+        }
+        if ($this->shouldGenerate('model')) {
+            $this->generateModel();
+        }
+        if ($this->shouldGenerate('repository')) {
+            $this->generateRepository();
+        }
+        if ($this->shouldGenerate('request')) {
+            $this->generateRequest();
+        }
+        if ($this->shouldGenerate('controller')) {
+            $this->generateController();
+        }
+        if ($this->shouldGenerate('resource')) {
+            $this->generateResource();
+        }
 
         $this->newLine();
         $this->info('✅ CRUD generated successfully!');
@@ -174,11 +193,38 @@ class MakeCrudCommand extends Command
         }
     }
 
+    protected function parseFilesToGenerate(): void
+    {
+        $allOption = $this->option('all');
+        $filesOption = $this->option('files');
+        
+        if ($allOption) {
+            $this->filesToGenerate = ['migration', 'model', 'repository', 'request', 'controller', 'resource'];
+            return;
+        }
+        
+        if (!empty($filesOption)) {
+            $this->filesToGenerate = array_map('trim', explode(',', $filesOption));
+            return;
+        }
+        
+        // Default: generate all files
+        $this->filesToGenerate = ['migration', 'model', 'repository', 'request', 'controller', 'resource'];
+    }
+
+    protected function shouldGenerate(string $file): bool
+    {
+        return in_array($file, $this->filesToGenerate);
+    }
+
     protected function replacePlaceholders(string $stub): string
     {
         $migrationColumns = '';
         $fillable = '';
         $validationRules = '';
+        $softDeletesMigration = '';
+        $softDeletesUse = '';
+        $softDeletesTrait = '';
         
         foreach ($this->columns as $column) {
             // Migration columns
@@ -197,6 +243,12 @@ class MakeCrudCommand extends Command
             $validationRules .= "'{$column['name']}' => 'required'";
         }
         
+        if ($this->softDelete) {
+            $softDeletesMigration = "\$table->softDeletes();\n            ";
+            $softDeletesUse = "use Illuminate\Database\Eloquent\SoftDeletes;\n";
+            $softDeletesTrait = "use SoftDeletes;\n    ";
+        }
+        
         return str_replace(
             [
                 '{{ studly }}',
@@ -208,6 +260,9 @@ class MakeCrudCommand extends Command
                 '{{ migrationColumns }}',
                 '{{ fillable }}',
                 '{{ validationRules }}',
+                '{{ softDeletesMigration }}',
+                '{{ softDeletesUse }}',
+                '{{ softDeletesTrait }}',
             ],
             [
                 $this->studly,
@@ -219,6 +274,9 @@ class MakeCrudCommand extends Command
                 $migrationColumns,
                 $fillable,
                 $validationRules,
+                $softDeletesMigration,
+                $softDeletesUse,
+                $softDeletesTrait,
             ],
             $stub
         );
