@@ -1,0 +1,219 @@
+<script setup>
+import { computed, ref }          from 'vue'
+import { router }                 from '@inertiajs/vue3'
+import AuthenticateLayout         from '@/Admin/Layouts/AuthenticateLayout.vue'
+import Sheet                      from '@/Components/UiComponent/Sheet.vue'
+import Button                     from '@/Components/UiComponent/Button.vue'
+import Input                      from '@/Components/UiComponent/Input.vue'
+import Textarea                   from '@/Components/UiComponent/Textarea.vue'
+import Toggle                     from '@/Components/UiComponent/Toggle.vue'
+import Table                      from '@/Components/UiComponent/Table.vue'
+import TableColumn                from '@/Components/UiComponent/TableColumn.vue'
+import ConfirmDialog              from '@/Components/UiComponent/ConfirmDialog.vue'
+import MediaLibrary               from '@/Components/UiComponent/MediaLibrary.vue'
+import {{ studly }}FilterSheet    from '@/Admin/Components/{{ pageGroup }}/{{ plural }}/{{ studly }}FilterSheet.vue'
+import { use{{ plural }} }        from '@/Admin/Composables/use{{ plural }}'
+import { Pencil, Trash2, Check, FolderOpen, X } from 'lucide-vue-next'
+
+defineOptions({ layout: AuthenticateLayout })
+
+const props = defineProps({
+    {{ pluralCamel }}: Array,
+    filters:    { type: Object, default: () => ({}) },
+})
+
+const {
+    form, showSheet, showConfirm, showStatusConfirm, showBulkConfirm,
+    editTarget, deleteTarget, statusTarget, bulkAction, bulkRows,
+    deleteProcessing, statusProcessing, bulkProcessing, isEditing,
+    initials, avatarColor, onNameInput, onImageSelect,
+    openCreate, openEdit, closeSheet,
+    save, askToggleStatus, confirmToggleStatus, askDelete, confirmDelete,
+    askBulkAction, confirmBulkAction,
+} = use{{ plural }}()
+
+// ── Filter ────────────────────────────────────────────────
+const showFilter  = ref(false)
+const filterCount = computed(() =>
+    Object.values(props.filters).filter(v => v !== null && v !== undefined && v !== '').length
+)
+
+function onFilterApply(filters) {
+    router.get(route('admin.{{ routeGroup }}.{{ routePlural }}.index'), filters, {
+        preserveState: true,
+        replace: true,
+    })
+}
+
+function onFilterReset() {
+    router.get(route('admin.{{ routeGroup }}.{{ routePlural }}.index'), {}, {
+        preserveState: true,
+        replace: true,
+    })
+}
+
+// ── Media Library ─────────────────────────────────────────
+const showMediaLibrary = ref(false)
+</script>
+
+<template>
+    <!-- ── DataTable ─────────────────────────────────────────── -->
+    <Table
+        :data="{{ pluralCamel }}"
+        title="{{ plural }}"
+        subtitle="Manage your {{ pluralSnake }}"
+        :searchable="true"
+        :create="true"
+        create-label="Add {{ studly }}"
+        :trash="true"
+        trash-route="admin.{{ routeGroup }}.{{ routePlural }}.trash"
+        :filter="true"
+        :filter-count="filterCount"
+        :config="true"
+        :pagination="true"
+        :flush="true"
+        :page-size="10"
+        search-placeholder="Search {{ pluralSnake }}..."
+        row-key="id"
+        @create="openCreate"
+        @trash="rows => askBulkAction(rows, 'delete')"
+        @filter="showFilter = true"
+    >
+        <TableColumn label="{{ studly }}" prop="name" sortable>
+            <template #default="{ row }">
+                <div class="flex items-center gap-2.5">
+                    <div
+                        class="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden"
+                        :class="avatarColor(row.id)"
+                    >
+                        <img v-if="row.image" :src="row.image" class="w-full h-full object-cover" alt="" />
+                        <span v-else>{{ initials(row.name) }}</span>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-dark truncate">{{ row.name }}</p>
+                        {{ slugColumn }}
+                    </div>
+                </div>
+            </template>
+        </TableColumn>
+
+        {{ descriptionColumn }}
+
+        <TableColumn label="Status" prop="status" width="100" align="center" sortable>
+            <template #default="{ row }">
+                <Toggle
+                    :model-value="row.status"
+                    size="sm"
+                    @update:model-value="askToggleStatus(row)"
+                />
+            </template>
+        </TableColumn>
+
+        <TableColumn label="Actions" width="80" align="center">
+            <template #default="{ row }">
+                <div class="flex items-center justify-center gap-1">
+                    <button
+                        class="w-7 h-7 flex items-center justify-center rounded-md text-semidark hover:bg-page hover:text-dark transition-colors cursor-pointer"
+                        @click="openEdit(row)"
+                    >
+                        <Pencil class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                        class="w-7 h-7 flex items-center justify-center rounded-md text-semidark hover:bg-error/10 hover:text-error transition-colors cursor-pointer"
+                        @click="askDelete(row)"
+                    >
+                        <Trash2 class="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </template>
+        </TableColumn>
+    </Table>
+
+    <!-- ── Create / Edit Sheet ───────────────────────────────── -->
+    <Sheet v-model="showSheet" :title="isEditing ? 'Edit {{ studly }}' : 'New {{ studly }}'" side="right" size="md">
+
+        <div class="flex flex-col gap-5">
+
+            {{ imageFormBlock }}
+
+            <!-- Name + Slug -->
+            <Input
+                v-model="form.name"
+                label="{{ studly }} Name"
+                placeholder="Enter name..."
+                :required="true"
+                @input="onNameInput"
+            />
+            {{ slugFormField }}
+
+            {{ descriptionFormField }}
+
+            <!-- Status -->
+            <div class="flex items-center justify-between py-3 px-4 rounded-xl border border-stroke1 bg-page">
+                <div>
+                    <p class="text-sm font-medium text-dark">Active</p>
+                    <p class="text-xs text-semidark">{{ studly }} is visible in the store</p>
+                </div>
+                <Toggle v-model="form.status" />
+            </div>
+        </div>
+
+        <template #footer>
+            <div class="flex items-center justify-end gap-2 w-full">
+                <Button variant="ghost" @click="closeSheet">Cancel</Button>
+                <Button :before-icon="Check" :processing="form.processing" @click="save">
+                    {{ isEditing ? 'Save Changes' : 'Create {{ studly }}' }}
+                </Button>
+            </div>
+        </template>
+    </Sheet>
+
+    <!-- ── Delete confirm ────────────────────────────────────── -->
+    <ConfirmDialog
+        v-model="showConfirm"
+        variant="danger"
+        title="Delete {{ studly }}"
+        :message="'Delete \'' + (deleteTarget?.name ?? '') + '\'? This action cannot be undone.'"
+        confirm-text="Delete"
+        :loading="deleteProcessing"
+        :persistent="deleteProcessing"
+        @confirm="confirmDelete"
+    />
+
+    <!-- ── Status confirm ────────────────────────────────────── -->
+    <ConfirmDialog
+        v-model="showStatusConfirm"
+        variant="warning"
+        title="Change Status"
+        :message="statusTarget?.status
+            ? 'Deactivate \'' + (statusTarget?.name ?? '') + '\'? It will be hidden from the store.'
+            : 'Activate \'' + (statusTarget?.name ?? '') + '\'? It will become visible in the store.'"
+        confirm-text="Confirm"
+        :loading="statusProcessing"
+        :persistent="statusProcessing"
+        @confirm="confirmToggleStatus"
+    />
+
+    <!-- ── Bulk action confirm ───────────────────────────────── -->
+    <ConfirmDialog
+        v-model="showBulkConfirm"
+        variant="danger"
+        :title="bulkAction === 'delete' ? 'Delete {{ plural }}' : 'Bulk Action'"
+        :message="`Delete ${bulkRows.length} selected {{ snake }}(s)? This action cannot be undone.`"
+        confirm-text="Delete"
+        :loading="bulkProcessing"
+        :persistent="bulkProcessing"
+        @confirm="confirmBulkAction"
+    />
+
+    <!-- ── Media Library ─────────────────────────────────────── -->
+    {{ mediaLibraryBlock }}
+
+    <!-- ── Filter Sheet ──────────────────────────────────────── -->
+    <{{ studly }}FilterSheet
+        v-model="showFilter"
+        :filters="props.filters"
+        @apply="onFilterApply"
+        @reset="onFilterReset"
+    />
+</template>

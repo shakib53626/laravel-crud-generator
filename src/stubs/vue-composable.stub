@@ -1,0 +1,194 @@
+import { ref, computed } from 'vue'
+import { useForm } from '@inertiajs/vue3'
+import { useBackendRequest } from '@/Composables/useBackendRequest'
+
+const { request, submit } = useBackendRequest()
+
+// ── Shared state ──────────────────────────────────────────────────────────────
+const showSheet         = ref(false)
+const showConfirm       = ref(false)
+const showStatusConfirm = ref(false)
+const showBulkConfirm   = ref(false)
+const editTarget        = ref(null)
+const deleteTarget      = ref(null)
+const statusTarget      = ref(null)
+const bulkAction        = ref(null)
+const bulkRows          = ref([])
+const deleteProcessing  = ref(false)
+const statusProcessing  = ref(false)
+const bulkProcessing    = ref(false)
+
+const form = useForm({
+    {{ formFields }}
+})
+
+// ── Computed helpers ──────────────────────────────────────────────────────────
+const isEditing = computed(() => !!editTarget.value)
+
+function initials(name) {
+    return name?.slice(0, 2).toUpperCase() ?? '??'
+}
+
+const avatarColors = [
+    'bg-primary/10 text-primary',
+    'bg-info/10 text-info',
+    'bg-success/10 text-success',
+    'bg-warning/10 text-warning',
+    'bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    'bg-pink-100 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400',
+]
+function avatarColor(id) {
+    return avatarColors[id % avatarColors.length]
+}
+
+function autoSlug(name) {
+    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+}
+
+// ── Sheet open/close ──────────────────────────────────────────────────────────
+function openCreate() {
+    editTarget.value = null
+    form.reset()
+    form.status = true
+    showSheet.value = true
+}
+
+function openEdit({{ camel }}) {
+    editTarget.value = {{ camel }}
+    {{ formFillFromEdit }}
+    showSheet.value  = true
+}
+
+function closeSheet() {
+    showSheet.value  = false
+    editTarget.value = null
+    form.reset()
+}
+
+function onNameInput() {
+    if (!isEditing.value) {
+        form.slug = autoSlug(form.name)
+    }
+}
+
+// ── CRUD actions ──────────────────────────────────────────────────────────────
+async function save() {
+    if (isEditing.value) {
+        await submit(form, 'put', route('admin.{{ routeGroup }}.{{ routePlural }}.update', editTarget.value.id), {
+            onSuccess: () => closeSheet(),
+        })
+    } else {
+        await submit(form, 'post', route('admin.{{ routeGroup }}.{{ routePlural }}.store'), {
+            onSuccess: () => closeSheet(),
+        })
+    }
+}
+
+function askToggleStatus({{ camel }}) {
+    statusTarget.value      = {{ camel }}
+    showStatusConfirm.value = true
+}
+
+async function confirmToggleStatus() {
+    if (!statusTarget.value) return
+    statusProcessing.value = true
+    await request('patch', route('admin.{{ routeGroup }}.{{ routePlural }}.toggle-status', statusTarget.value.id), {}, {
+        preserveState: true,
+        onSuccess: () => {
+            showStatusConfirm.value = false
+            statusTarget.value      = null
+        },
+    })
+    statusProcessing.value = false
+}
+
+function askDelete({{ camel }}) {
+    deleteTarget.value = {{ camel }}
+    showConfirm.value  = true
+}
+
+async function confirmDelete() {
+    if (!deleteTarget.value) return
+    deleteProcessing.value = true
+    await request('delete', route('admin.{{ routeGroup }}.{{ routePlural }}.destroy', deleteTarget.value.id), {}, {
+        preserveState: true,
+        onSuccess: () => {
+            showConfirm.value  = false
+            deleteTarget.value = null
+        },
+    })
+    deleteProcessing.value = false
+}
+
+// ── Bulk actions ──────────────────────────────────────────────────────────────
+function askBulkAction(rows, action) {
+    bulkRows.value        = rows
+    bulkAction.value      = action
+    showBulkConfirm.value = true
+}
+
+async function confirmBulkAction() {
+    bulkProcessing.value = true
+    await request('post', route('admin.{{ routeGroup }}.{{ routePlural }}.bulk-action'), {
+        action: bulkAction.value,
+        ids:    bulkRows.value.map(r => r.id),
+    }, {
+        preserveState: true,
+        onSuccess: () => {
+            showBulkConfirm.value = false
+            bulkRows.value        = []
+            bulkAction.value      = null
+        },
+    })
+    bulkProcessing.value = false
+}
+
+// ── Trash single actions ──────────────────────────────────────────────────────
+async function restore(id) {
+    await request('patch', route('admin.{{ routeGroup }}.{{ routePlural }}.restore', id), {}, { preserveState: true })
+}
+
+async function forceDelete(id) {
+    await request('delete', route('admin.{{ routeGroup }}.{{ routePlural }}.force-delete', id), {}, { preserveState: true })
+}
+
+// ── Image ─────────────────────────────────────────────────────────────────────
+function onImageSelect(file) {
+    form.image = file?.url ?? file ?? null
+}
+
+export function use{{ plural }}() {
+    return {
+        form,
+        showSheet,
+        showConfirm,
+        showStatusConfirm,
+        showBulkConfirm,
+        editTarget,
+        deleteTarget,
+        statusTarget,
+        bulkAction,
+        bulkRows,
+        deleteProcessing,
+        statusProcessing,
+        bulkProcessing,
+        isEditing,
+        initials,
+        avatarColor,
+        autoSlug,
+        onNameInput,
+        onImageSelect,
+        openCreate,
+        openEdit,
+        closeSheet,
+        save,
+        askToggleStatus,
+        confirmToggleStatus,
+        askDelete,
+        confirmDelete,
+        askBulkAction,
+        confirmBulkAction,
+        restore,
+        forceDelete,
+    }
+}

@@ -1,0 +1,209 @@
+<script setup>
+import { ref }            from 'vue'
+import AuthenticateLayout from '@/Admin/Layouts/AuthenticateLayout.vue'
+import Table              from '@/Components/UiComponent/Table.vue'
+import TableColumn        from '@/Components/UiComponent/TableColumn.vue'
+import ConfirmDialog      from '@/Components/UiComponent/ConfirmDialog.vue'
+import { Link }           from '@inertiajs/vue3'
+import { use{{ plural }} } from '@/Admin/Composables/use{{ plural }}'
+import { RotateCcw, Trash2, ArrowLeft } from 'lucide-vue-next'
+
+defineOptions({ layout: AuthenticateLayout })
+
+defineProps({ {{ pluralCamel }}: Array })
+
+const {
+    showBulkConfirm, bulkAction, bulkRows, bulkProcessing,
+    askBulkAction, confirmBulkAction,
+    restore, forceDelete,
+} = use{{ plural }}()
+
+// ── Helpers ───────────────────────────────────────────────
+function initials(name) { return name?.slice(0, 2).toUpperCase() ?? '??' }
+const avatarColors = [
+    'bg-primary/10 text-primary', 'bg-info/10 text-info',
+    'bg-success/10 text-success', 'bg-warning/10 text-warning',
+    'bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    'bg-pink-100 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400',
+]
+function avatarColor(id) { return avatarColors[id % avatarColors.length] }
+function formatDate(d) {
+    return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+// ── Selection ─────────────────────────────────────────────
+const selectedRows = ref([])
+function onSelectionChange(rows) { selectedRows.value = rows }
+
+// ── Single restore ────────────────────────────────────────
+const confirmRestore  = ref(false)
+const restoreTarget   = ref(null)
+const restoreLoading  = ref(false)
+
+function askRestore({{ camel }}) {
+    restoreTarget.value  = {{ camel }}
+    confirmRestore.value = true
+}
+async function doRestore() {
+    restoreLoading.value = true
+    await restore(restoreTarget.value.id)
+    restoreLoading.value = false
+    confirmRestore.value = false
+    restoreTarget.value  = null
+}
+
+// ── Single force delete ───────────────────────────────────
+const confirmForceDelete = ref(false)
+const forceDeleteTarget  = ref(null)
+const forceDeleteLoading = ref(false)
+
+function askForceDelete({{ camel }}) {
+    forceDeleteTarget.value  = {{ camel }}
+    confirmForceDelete.value = true
+}
+async function doForceDelete() {
+    forceDeleteLoading.value = true
+    await forceDelete(forceDeleteTarget.value.id)
+    forceDeleteLoading.value = false
+    confirmForceDelete.value = false
+    forceDeleteTarget.value  = null
+}
+</script>
+
+<template>
+    <Table
+        :data="{{ pluralCamel }}"
+        title="Trash"
+        subtitle="Deleted {{ pluralSnake }} — restore or permanently delete"
+        :searchable="true"
+        :pagination="true"
+        :flush="true"
+        :page-size="10"
+        search-placeholder="Search trash..."
+        row-key="id"
+        @selection-change="onSelectionChange"
+    >
+        <template #toolbar>
+            <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 scale-95"
+                enter-to-class="opacity-100 scale-100"
+                leave-active-class="transition duration-100 ease-in"
+                leave-from-class="opacity-100 scale-100"
+                leave-to-class="opacity-0 scale-95"
+            >
+                <div v-if="selectedRows.length > 0" class="flex items-center gap-2">
+                    <button
+                        class="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-success/40 bg-success/10 text-success text-xs font-medium hover:bg-success/20 transition-colors cursor-pointer"
+                        @click="askBulkAction(selectedRows, 'restore')"
+                    >
+                        <RotateCcw class="w-3.5 h-3.5" />
+                        Restore ({{ selectedRows.length }})
+                    </button>
+                    <button
+                        class="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-error/40 bg-error/10 text-error text-xs font-medium hover:bg-error/20 transition-colors cursor-pointer"
+                        @click="askBulkAction(selectedRows, 'force-delete')"
+                    >
+                        <Trash2 class="w-3.5 h-3.5" />
+                        Delete ({{ selectedRows.length }})
+                    </button>
+                </div>
+            </Transition>
+
+            <Link
+                :href="route('admin.{{ routeGroup }}.{{ routePlural }}.index')"
+                class="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-stroke1 text-semidark hover:bg-page hover:text-dark transition-colors cursor-pointer"
+                title="Back to {{ plural }}"
+            >
+                <ArrowLeft class="w-3.5 h-3.5" />
+            </Link>
+        </template>
+
+        <TableColumn type="selection" />
+
+        <TableColumn label="{{ studly }}" prop="name" sortable>
+            <template #default="{ row }">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 opacity-60 overflow-hidden"
+                        :class="avatarColor(row.id)"
+                    >
+                        <img v-if="row.image" :src="row.image" class="w-full h-full object-cover" alt="" />
+                        <span v-else>{{ initials(row.name) }}</span>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-dark truncate">{{ row.name }}</p>
+                        {{ slugColumn }}
+                    </div>
+                </div>
+            </template>
+        </TableColumn>
+
+        {{ descriptionColumn }}
+
+        <TableColumn label="Deleted" prop="deleted_at" width="130" sortable>
+            <template #default="{ value }">
+                <span class="text-xs text-semidark">{{ value ? formatDate(value) : '—' }}</span>
+            </template>
+        </TableColumn>
+
+        <TableColumn label="Actions" width="90" align="center">
+            <template #default="{ row }">
+                <div class="flex items-center justify-center gap-1">
+                    <button
+                        class="w-7 h-7 flex items-center justify-center rounded-md text-semidark hover:bg-success/10 hover:text-success transition-colors cursor-pointer"
+                        title="Restore"
+                        @click="askRestore(row)"
+                    >
+                        <RotateCcw class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                        class="w-7 h-7 flex items-center justify-center rounded-md text-semidark hover:bg-error/10 hover:text-error transition-colors cursor-pointer"
+                        title="Delete permanently"
+                        @click="askForceDelete(row)"
+                    >
+                        <Trash2 class="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </template>
+        </TableColumn>
+    </Table>
+
+    <!-- Single restore confirm -->
+    <ConfirmDialog
+        v-model="confirmRestore"
+        variant="success"
+        title="Restore {{ studly }}"
+        :message="'Restore \'' + (restoreTarget?.name ?? '') + '\'? It will be moved back to the active list.'"
+        confirm-text="Restore"
+        :loading="restoreLoading"
+        :persistent="restoreLoading"
+        @confirm="doRestore"
+    />
+
+    <!-- Single force delete confirm -->
+    <ConfirmDialog
+        v-model="confirmForceDelete"
+        variant="danger"
+        title="Permanently Delete"
+        :message="'Permanently delete \'' + (forceDeleteTarget?.name ?? '') + '\'? This cannot be undone.'"
+        confirm-text="Delete Forever"
+        :loading="forceDeleteLoading"
+        :persistent="forceDeleteLoading"
+        @confirm="doForceDelete"
+    />
+
+    <!-- Bulk confirm -->
+    <ConfirmDialog
+        v-model="showBulkConfirm"
+        :variant="bulkAction === 'restore' ? 'success' : 'danger'"
+        :title="bulkAction === 'restore' ? 'Restore {{ plural }}' : 'Permanently Delete'"
+        :message="bulkAction === 'restore'
+            ? `Restore ${bulkRows.length} {{ snake }}(s)? They will be moved back to the active list.`
+            : `Permanently delete ${bulkRows.length} {{ snake }}(s)? This cannot be undone.`"
+        :confirm-text="bulkAction === 'restore' ? 'Restore All' : 'Delete Forever'"
+        :loading="bulkProcessing"
+        :persistent="bulkProcessing"
+        @confirm="confirmBulkAction"
+    />
+</template>

@@ -3,32 +3,62 @@
 namespace App\Repositories;
 
 use App\Models\{{ studly }};
+use Illuminate\Support\Str;
 
 class {{ studly }}Repository
 {
-    public function getAll()
+    public function all(array $filters = []): \Illuminate\Database\Eloquent\Collection
     {
-        return {{ studly }}::all();
+        $query = {{ studly }}::query();
+
+        if (isset($filters['status'])) {
+            if ($filters['status'] === 'active') {
+                $query->where('status', true);
+            } elseif ($filters['status'] === 'inactive') {
+                $query->where('status', false);
+            }
+        }
+
+        match ($filters['sort'] ?? null) {
+            'name_asc'  => $query->orderBy('name'),
+            'name_desc' => $query->orderByDesc('name'),
+            'newest'    => $query->latest(),
+            'oldest'    => $query->oldest(),
+            default     => $query->orderBy('name'),
+        };
+
+        return $query->get();
     }
 
-    public function findById($id)
+    public function find(int $id): {{ studly }}
     {
         return {{ studly }}::findOrFail($id);
     }
 
-    public function create(array $data)
+    public function create(array $data): {{ studly }}
     {
+        {{ slugCreateBlock }}
         return {{ studly }}::create($data);
     }
 
-    public function update({{ studly }} ${{ camel }}, array $data)
+    public function update({{ studly }} ${{ camel }}, array $data): {{ studly }}
     {
+        {{ slugUpdateBlock }}
         ${{ camel }}->update($data);
-        return ${{ camel }};
+
+        return ${{ camel }}->fresh();
     }
 
-    public function delete({{ studly }} ${{ camel }})
+    public function delete({{ studly }} ${{ camel }}): void
     {
-        return ${{ camel }}->delete();
+        ${{ camel }}->delete();
     }
+    {{ softDeleteMethods }}
+    public function toggleStatus({{ studly }} ${{ camel }}): {{ studly }}
+    {
+        ${{ camel }}->update(['status' => !${{ camel }}->status]);
+
+        return ${{ camel }};
+    }
+    {{ uniqueSlugMethod }}
 }

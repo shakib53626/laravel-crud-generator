@@ -1,0 +1,12 @@
+
+        // {{ plural }} resource routes
+        Route::get   ('/{{ routePlural }}',                    [{{ studly }}Controller::class, 'index'])->name('{{ routePlural }}.index');
+        Route::post  ('/{{ routePlural }}',                    [{{ studly }}Controller::class, 'store'])->name('{{ routePlural }}.store');
+        Route::put   ('/{{ routePlural }}/{{{ routeParam }}}',         [{{ studly }}Controller::class, 'update'])->name('{{ routePlural }}.update');
+        Route::patch ('/{{ routePlural }}/{{{ routeParam }}}/status',  [{{ studly }}Controller::class, 'toggleStatus'])->name('{{ routePlural }}.toggle-status');
+        Route::delete('/{{ routePlural }}/{{{ routeParam }}}',         [{{ studly }}Controller::class, 'destroy'])->name('{{ routePlural }}.destroy');
+        Route::post  ('/{{ routePlural }}/bulk-action',        [{{ studly }}Controller::class, 'bulkAction'])->name('{{ routePlural }}.bulk-action');
+        // Trash
+        Route::get   ('/{{ routePlural }}/trash',              [{{ studly }}Controller::class, 'trash'])->name('{{ routePlural }}.trash');
+        Route::patch ('/{{ routePlural }}/{id}/restore',       [{{ studly }}Controller::class, 'restore'])->name('{{ routePlural }}.restore');
+        Route::delete('/{{ routePlural }}/{id}/force',         [{{ studly }}Controller::class, 'forceDelete'])->name('{{ routePlural }}.force-delete');

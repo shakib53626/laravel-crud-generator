@@ -2,22 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 {{ softDeletesUse }}use Illuminate\Database\Eloquent\Model;
 
+/**
+{{ modelDocblock }}
+ */
 class {{ studly }} extends Model
 {
-    use HasFactory;
     {{ softDeletesTrait }}
-    protected $table = '{{ tableName }}';
 
-    {{ guardedOrFillable }}
-
-    protected $hidden = [
-        //
+    protected $fillable = [
+        {{ fillableList }}
     ];
 
     protected $casts = [
-        //
+        {{ castsBlock }}
     ];
 }
